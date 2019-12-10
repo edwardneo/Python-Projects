@@ -1,81 +1,169 @@
 import pygame
 
-screenWidth = 800
-screenHeight = 900
-screenMargin = 10
-gridWidth = (screenWidth-2*screenMargin)/3
-upperBar = screenHeight-screenWidth
-iconMargin = 5
-lineWidth = 1
-counter = 0
-coordinates = []
-XCoordinates = []
-OCoordinates = []
+class TwoPlayerTTT:
+    def __init__(self):
+        self.screenWidth = 800
+        self.screenHeight = 900
 
-pygame.init()
-screen = pygame.display.set_mode((screenWidth, screenHeight))
-done = False
-color = (255, 255, 255)
+        self.screenMargin = 10
+        self.textMargin = 30
+        self.iconMargin = 5
+        self.gridWidth = int((self.screenWidth-2*self.screenMargin)/3)
+        self.upperBar = self.screenHeight - self.screenWidth
 
-for i in range(1, 4):
-    for j in range(1, 4):
-        coordinates.append((i, j))
+        self.buttonXbounds = [(self.screenWidth-self.screenWidth//4)//2, (self.screenWidth+self.screenWidth//4)//2]
+        self.buttonYbounds = [3 * self.upperBar // 4 - self.upperBar // 8, 3 * self.upperBar // 4 + self.upperBar // 8]
 
-def drawGrid():
-    pygame.draw.line(screen, color, (gridWidth+screenMargin, upperBar+screenMargin), (gridWidth+screenMargin, screenHeight-screenMargin), lineWidth)
-    pygame.draw.line(screen, color, (2*gridWidth+screenMargin, upperBar+screenMargin), (2*gridWidth+screenMargin, screenHeight-screenMargin), lineWidth)
-    pygame.draw.line(screen, color, (screenMargin, upperBar+gridWidth+screenMargin), (screenWidth-screenMargin, upperBar+gridWidth+screenMargin), lineWidth)
-    pygame.draw.line(screen, color, (screenMargin, upperBar+2*gridWidth+screenMargin), (screenWidth-screenMargin, upperBar+2*gridWidth+screenMargin), lineWidth)
+        self.scores = {"X": 0, "O": 0}
+        self.turnX = True
+        self.winner = None
+        self.buttonDrawn = False
 
-def drawCross(row, column):
-    posx = (column-1)*gridWidth+screenMargin+iconMargin
-    posy = upperBar+(row-1)*gridWidth+screenMargin+iconMargin
-    pygame.draw.line(screen, color, (posx, posy), (posx+gridWidth-2*iconMargin, posy+gridWidth-2*iconMargin), lineWidth)
-    pygame.draw.line(screen, color, (posx+gridWidth-2*iconMargin, posy), (posx, posy+gridWidth-2*iconMargin), lineWidth)
+        self.XPositions = []
+        self.OPositions = []
+        self.positionsStatic = ((1, 1), (1, 2), (1, 3), (2, 1), (2, 2), (2, 3), (3, 1), (3, 2), (3, 3))
+        self.positions = list(self.positionsStatic)
 
-def drawCircle(row, column):
-    pygame.draw.circle(screen, color, (int((column-1)*gridWidth+screenMargin+gridWidth/2), int(upperBar+(row-1)*gridWidth+screenMargin+gridWidth/2)), int(gridWidth/2-screenMargin), lineWidth)
+        self.backgroundColor = (255, 255, 255)
+        self.textColor = (0, 0, 0)
+        self.lineColor = (0, 0, 0)
+        self.XColor = (255, 0, 0)
+        self.OColor = (0, 0, 255)
+        self.buttonColor = (0, 255, 0)
+        self.winnerBackgroundColor = (255, 217, 15)
 
-def hasWon(places):
-    rows = [0, 0, 0]
-    columns = [0, 0, 0]
-    diagonals = [0, 0]
-    for coordinate in places:
-        rows[coordinate[0]-1] += 1
-        columns[coordinate[1]-1] += 1
-        if coordinate in [(1, 1), (2, 2), (3, 3)]:
-            diagonals[0] += 1
-        if coordinate in [(1, 3), (2, 2), (3, 1)]:
-            diagonals[1] += 1
-    if 3 in rows + columns + diagonals:
-        return True
-    else:
-        return False
+    def drawTitle(self):
+        text = pygame.font.SysFont("comicsansms", 56).render("Two Player Tic-Tac-Toe", True, self.textColor)
+        self.screen.blit(text, ((self.screenWidth - text.get_width()) // 2, self.upperBar // 3 - text.get_height() // 2))
 
-while not done:
-    drawGrid()
-    for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                done = True
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                position = event.pos
-                row = int((position[1]-upperBar)/gridWidth) + 1
-                column = int(position[0]/gridWidth) + 1
-                if (row, column) in coordinates:
-                    if counter%2 == 0:
-                        drawCross(row, column)
-                        XCoordinates.append((row, column))
-                        if hasWon(XCoordinates):
-                            print("X has won.")
-                            done = True
-                    else:
-                        drawCircle(row, column)
-                        OCoordinates.append((row, column))
-                        if hasWon(OCoordinates):
-                            print("O has won.")
-                            done = True
-                    coordinates.remove((row, column))
+    def drawScores(self, drawBackground=False):
+        XWinnerText = pygame.font.SysFont("comicsansms", 36).render("X: " + str(self.scores["X"]), True, self.XColor)
+        OWinnerText = pygame.font.SysFont("comicsansms", 36).render("O: " + str(self.scores["O"]), True, self.OColor)
 
-                    counter += 1
+        if drawBackground:
+            if self.winner == "X":
+                pygame.draw.rect(self.screen, self.winnerBackgroundColor, pygame.Rect(self.textMargin - XWinnerText.get_width() // 2, 2 * self.upperBar // 3 - XWinnerText.get_height() // 2, XWinnerText.get_width(), XWinnerText.get_height()))
+            else:
+                pygame.draw.rect(self.screen, self.winnerBackgroundColor, pygame.Rect(self.screenWidth-self.textMargin - OWinnerText.get_width() // 2, 2 * self.upperBar // 3 - OWinnerText.get_height() // 2, OWinnerText.get_width(), OWinnerText.get_height()))
 
-    pygame.display.flip()
+        self.screen.blit(XWinnerText, (self.textMargin - XWinnerText.get_width() // 2, 2 * self.upperBar // 3 - XWinnerText.get_height() // 2))
+        self.screen.blit(OWinnerText, (self.screenWidth-self.textMargin - OWinnerText.get_width() // 2, 2 * self.upperBar // 3 - OWinnerText.get_height() // 2))
+
+    def drawButton(self):
+        self.buttonDrawn = True
+
+        pygame.draw.rect(self.screen, self.buttonColor, pygame.Rect(self.buttonXbounds[0], self.buttonYbounds[0], self.buttonXbounds[1] - self.buttonXbounds[0], self.buttonYbounds[1] - self.buttonYbounds[0]))
+
+        text = pygame.font.SysFont("comicsansms", 24).render("New game", True, self.textColor)
+        self.screen.blit(text, ((self.screenWidth-text.get_width())//2, 3 * self.upperBar // 4 - text.get_height() // 2))
+
+
+    def drawGrid(self):
+        pygame.draw.line(self.screen, self.lineColor, (self.gridWidth+self.screenMargin, self.upperBar+self.screenMargin), (self.gridWidth+self.screenMargin, self.screenHeight-self.screenMargin))
+        pygame.draw.line(self.screen, self.lineColor, (2*self.gridWidth+self.screenMargin, self.upperBar+self.screenMargin), (2*self.gridWidth+self.screenMargin, self.screenHeight-self.screenMargin))
+        pygame.draw.line(self.screen, self.lineColor, (self.screenMargin, self.upperBar+self.gridWidth+self.screenMargin), (self.screenWidth-self.screenMargin, self.upperBar+self.gridWidth+self.screenMargin))
+        pygame.draw.line(self.screen, self.lineColor, (self.screenMargin, self.upperBar+2*self.gridWidth+self.screenMargin), (self.screenWidth-self.screenMargin, self.upperBar+2*self.gridWidth+self.screenMargin))
+
+    def drawCross(self, position):
+        posx = (position[1]-1)*self.gridWidth+self.screenMargin+self.iconMargin
+        posy = self.upperBar+(position[0]-1)*self.gridWidth+self.screenMargin+self.iconMargin
+
+        pygame.draw.line(self.screen, self.XColor, (posx, posy), (posx+self.gridWidth-2*self.iconMargin, posy+self.gridWidth-2*self.iconMargin))
+        pygame.draw.line(self.screen, self.XColor, (posx+self.gridWidth-2*self.iconMargin, posy), (posx, posy+self.gridWidth-2*self.iconMargin))
+
+    def drawCircle(self, position):
+        pygame.draw.circle(self.screen, self.OColor, (int((position[1]-1)*self.gridWidth+self.screenMargin+self.gridWidth/2), int(self.upperBar+(position[0]-1)*self.gridWidth+self.screenMargin+self.gridWidth/2)), int(self.gridWidth/2-self.screenMargin), 1)
+
+    def hasWon(self, places):
+        rows = [0, 0, 0]
+        columns = [0, 0, 0]
+        diagonals = [0, 0]
+        for place in places:
+            rows[place[0]-1] += 1
+            columns[place[1]-1] += 1
+            if place in [(1, 1), (2, 2), (3, 3)]:
+                diagonals[0] += 1
+            if place in [(1, 3), (2, 2), (3, 1)]:
+                diagonals[1] += 1
+        if 3 in rows + columns + diagonals:
+            return True
+        else:
+            return False
+
+    def drawIcon(self, position):
+        if self.turnX:
+            self.drawCross(position)
+
+            self.XPositions.append(position)
+            if self.hasWon(self.XPositions):
+                self.winner = "X"
+        else:
+            self.drawCircle(position)
+
+            self.OPositions.append(position)
+            if self.hasWon(self.OPositions):
+                self.winner = "O"
+
+    def buttonClicked(self):
+        self.turnX = True
+        self.buttonDrawn = False
+
+        self.XPositions = []
+        self.OPositions = []
+        self.positions = list(self.positionsStatic)
+
+        self.screen.fill(self.backgroundColor)
+        self.drawTitle()
+        self.drawScores()
+        self.drawGrid()
+
+    def mouseClick(self, event):
+        if self.buttonDrawn and self.buttonXbounds[0] <= event.pos[0] and event.pos[0] <= self.buttonXbounds[1] and self.buttonYbounds[0] <= event.pos[1] and event.pos[1] <= self.buttonYbounds[1]:
+            self.buttonClicked()
+        else:
+            position = (int((event.pos[1]-self.upperBar)/self.gridWidth)+1, int(event.pos[0]/self.gridWidth)+1)
+
+            if position in self.positions:
+                self.positions.remove(position)
+                self.drawIcon(position)
+                self.turnX = not self.turnX
+
+    def redrawBoard(self):
+        self.screen.fill(self.backgroundColor)
+        self.drawTitle()
+        self.drawScores(True)
+        self.drawGrid()
+        for position in self.XPositions:
+            self.drawCross(position)
+        for position in self.OPositions:
+            self.drawCircle(position)
+
+    def run(self):
+        pygame.init()
+        self.screen = pygame.display.set_mode((self.screenWidth, self.screenHeight))
+        self.screen.fill(self.backgroundColor)
+        self.drawTitle()
+        self.drawScores()
+        self.drawGrid()
+        done = False
+
+        while not done:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    done = True
+                if event.type == pygame.MOUSEBUTTONUP:
+                    self.mouseClick(event)
+                if not self.winner == None:
+                    self.scores[self.winner] += 1
+                    self.redrawBoard()
+                    self.drawButton()
+                    self.winner = None
+
+            pygame.display.flip()
+
+def main():
+    tictactoe = TwoPlayerTTT()
+    tictactoe.run()
+
+if __name__ == "__main__":
+    main()
