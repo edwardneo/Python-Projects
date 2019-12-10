@@ -15,7 +15,11 @@ class TwoPlayerTTT:
         self.buttonXbounds = [(self.screenWidth-self.screenWidth//4)//2, (self.screenWidth+self.screenWidth//4)//2]
         self.buttonYbounds = [3 * self.upperBar // 4 - self.upperBar // 8, 3 * self.upperBar // 4 + self.upperBar // 8]
 
-        self.scores = {"X": 0, "O": 0}
+        self.scores = {"X": 0,
+                       "O": 0,
+                       "Tie": 0
+                       }
+
         self.turnX = True
         self.winner = None
         self.buttonDrawn = False
@@ -50,7 +54,7 @@ class TwoPlayerTTT:
         if self.winner:
             if self.winner == "X":
                 pygame.draw.rect(self.screen, self.color['winner'], pygame.Rect(self.textMargin - XWinnerText.get_width() // 2, 2 * self.upperBar // 3 - XWinnerText.get_height() // 2, XWinnerText.get_width(), XWinnerText.get_height()))
-            else:
+            elif self.winner == "O":
                 pygame.draw.rect(self.screen, self.color['winner'], pygame.Rect(self.screenWidth-self.textMargin - OWinnerText.get_width() // 2, 2 * self.upperBar // 3 - OWinnerText.get_height() // 2, OWinnerText.get_width(), OWinnerText.get_height()))
         else:
             if self.turnX:
@@ -156,6 +160,8 @@ class TwoPlayerTTT:
             if position in self.positions:
                 self.positions.remove(position)
                 self.drawIcon(position)
+                if self.positions == [] and not self.winner:
+                    self.winner = "Tie"
                 self.turnX = not self.turnX
                 self.drawScores()
 
