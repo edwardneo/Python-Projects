@@ -1,10 +1,129 @@
 import pygame
 import math
 
-class TwoPlayerTTT:
+def shaded(color):
+    shadeFactor = 0.3
+    return (color[0]*(1-shadeFactor), color[1]*(1-shadeFactor), color[2]*(1-shadeFactor))
+
+class Button():
+    def __init__(self, centerX, centerY, width, height, buttonColor, text, font, fontSize, textColor):
+        self.centerX = centerX
+        self.centerY = centerY
+        self.width = width
+        self.height = height
+        self.buttonColor = buttonColor
+
+        self.XBounds = (self.centerX-self.width//2, self.centerX+self.width//2)
+        self.YBounds = (self.centerY-self.height//2, self.centerY+self.height//2)
+
+        self.text = text
+        self.font = font
+        self.fontSize = fontSize
+        self.textColor = textColor
+
+        self.drawButton()
+
+    def drawButton(self, color=None):
+        if color == None:
+            color = self.buttonColor
+
+        pygame.draw.rect(pygame.display.get_surface(), color, pygame.Rect(self.XBounds[0], self.YBounds[0], self.width, self.height))
+
+        text = pygame.font.SysFont(self.font, self.fontSize).render(self.text, True, self.textColor)
+        pygame.display.get_surface().blit(text, (self.centerX-text.get_width()//2, self.centerY-text.get_height()//2))
+
+    def withinBounds(self, coordinates):
+        return self.XBounds[0] <= coordinates[0] and coordinates[0] <= self.XBounds[1] and self.YBounds[0] <= coordinates[1] and coordinates[1] <= self.YBounds[1]
+    def holdDown(self):
+        self.drawButton(shaded(self.buttonColor))
+
+class Interface:
     def __init__(self):
         self.screenWidth = 800
         self.screenHeight = 900
+
+        self.text = "Tic-Tac-Toe"
+        self.font = "comicsansms"
+        self.fontSize = 128
+        self.textColor = (0, 255, 0)
+        self.textX = self.screenWidth//2
+        self.textY = self.screenHeight//3
+
+        self.buttonMargin = 20
+
+        self.onePlayerX = self.screenWidth//4
+        self.onePlayerY = 2*self.screenHeight//3
+        self.onePlayerColor = (0, 255, 255)
+        self.onePlayerText = "One Player"
+        self.onePlayerTextColor = (0, 0, 0)
+
+        self.twoPlayerX = 3*self.screenWidth//4
+        self.twoPlayerY = 2*self.screenHeight//3
+        self.twoPlayerColor = (0, 255, 255)
+        self.twoPlayerText = "Two Player"
+        self.twoPlayerTextColor = (0, 0, 0)
+
+        self.buttonWidth = self.screenWidth//2-2*self.buttonMargin
+        self.buttonHeight = self.screenHeight//3
+        self.buttonFont = "helvetica"
+        self.buttonFontSize = 80
+
+    def createText(self):
+        text = pygame.font.SysFont(self.font, self.fontSize).render(self.text, True, self.textColor)
+        self.screen.blit(text, (self.textX-text.get_width()//2, self.textY-text.get_height()//2))
+    def createButtons(self):
+        self.onePlayerButton = Button(self.onePlayerX, self.onePlayerY, self.buttonWidth, self.buttonHeight, self.onePlayerColor, self.onePlayerText, self.buttonFont, self.buttonFontSize, self.onePlayerTextColor)
+
+        self.twoPlayerButton = Button(self.twoPlayerX, self.twoPlayerY, self.buttonWidth, self.buttonHeight, self.twoPlayerColor, self.twoPlayerText, self.buttonFont, self.buttonFontSize, self.twoPlayerTextColor)
+    def run(self):
+        pygame.init()
+        pygame.display.set_caption('Tic-Tac-Toe')
+        self.screen = pygame.display.set_mode((self.screenWidth, self.screenHeight))
+        self.screen.fill((255, 255, 255))
+
+        self.createText()
+        self.createButtons()
+
+        done = False
+        while not done:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    done = True
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if self.onePlayerButton.withinBounds(event.pos):
+                        self.onePlayerButton.holdDown()
+                    elif self.twoPlayerButton.withinBounds(event.pos):
+                        self.twoPlayerButton.holdDown()
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    if self.onePlayerButton.withinBounds(event.pos):
+                        self.onePlayerButton.drawButton()
+
+                        self.onePlayer = OnePlayerTTT()
+                        self.onePlayer.run()
+
+                        done = self.onePlayer.exit
+                    elif self.twoPlayerButton.withinBounds(event.pos):
+                        self.twoPlayerButton.drawButton()
+
+                        self.twoPlayer = TwoPlayerTTT()
+                        self.twoPlayer.run()
+
+                        done = self.twoPlayer.exit
+
+            pygame.display.flip()
+
+class OnePlayerTTT:
+    def __init__(self):
+        self.exit = False
+        pass
+    def run(self):
+        pass
+
+class TwoPlayerTTT:
+    def __init__(self):
+        self.screen = pygame.display.get_surface()
+        self.screenWidth = self.screen.get_width()
+        self.screenHeight = self.screen.get_height()
 
         self.screenMargin = 10
         self.textMargin = 30
@@ -23,6 +142,7 @@ class TwoPlayerTTT:
         self.turnX = True
         self.winner = None
         self.buttonDrawn = False
+        self.exit = False
 
         self.XPositions = []
         self.OPositions = []
@@ -174,17 +294,14 @@ class TwoPlayerTTT:
             self.drawCircle(position)
 
     def run(self):
-        pygame.init()
-        pygame.display.set_caption('Tic-Tac-Toe')
-        self.screen = pygame.display.set_mode((self.screenWidth, self.screenHeight))
-        clock = pygame.time.Clock()
-
         self.setup()
+        clock = pygame.time.Clock()
 
         done = False
         while not done:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    self.exit = True
                     done = True
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     self.highlight(event)
@@ -200,8 +317,8 @@ class TwoPlayerTTT:
             clock.tick(60)
 
 def main():
-    tictactoe = TwoPlayerTTT()
-    tictactoe.run()
+    interface = Interface()
+    interface.run()
 
 if __name__ == "__main__":
     main()
